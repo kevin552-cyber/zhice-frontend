@@ -11,7 +11,6 @@ import { sendMessage, getHistory, deleteConversation, uploadFile, exportConversa
 import { useAuthStore } from '../../store/authStore';
 import { useChatStore } from '../../store/chatStore';
 import type { Message } from '../../types';
-import ErrorBoundary from '../../components/ErrorBoundary';
 
 const WELCOME = "我是医保支付与编码及DRG专家大模型，专注于医保支付、ICD编码、DRG/DIP分组、费用计算、诊疗价值评估和合规预警等领域。";
 
@@ -19,26 +18,6 @@ const SUGGESTIONS = [
   "宫颈癌根治术，合并盆腔淋巴结转移（C77.501）应选C53.901（宫颈恶性肿瘤）还是C77.501（盆腔淋巴结继发恶性肿瘤）作为主诊断？",
   "股骨颈骨折，术前发现急性肺炎，经治疗后行全髋关节置换术，医生填写急性肺炎为主诊断是否正确？",
 ];
-
-// 安全 Markdown 渲染
-function MarkdownRender({ content }: { content: string }) {
-  try {
-    const html = content
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/^(\d+)\. (.+)$/gm, '<li>$1. $2</li>')
-      .replace(/\n{2,}/g, '</p><p>')
-      .replace(/\n/g, '<br/>');
-    const wrapped = html.includes('</p>') ? html : `<p>${html}</p>`;
-    return <div className="markdown-body" dangerouslySetInnerHTML={{ __html: wrapped }} />;
-  } catch {
-    return <span>{content}</span>;
-  }
-}
 
 function generateFollowUps(answer: string, query: string): string[] {
   const qs: string[] = [];
@@ -72,7 +51,7 @@ function Avatar({ role }: { role: 'user' | 'assistant' }) {
   const text = role === 'user' ? '用户' : '智策';
   return (
     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-[13px] font-bold shrink-0"
-      style={{ background, boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+      style={{ background: bg, boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
       {text}
     </div>
   );
@@ -101,10 +80,23 @@ export default function ChatPage() {
   const loadConversation = async (id: string) => {
     try {
       const res = await getConversation(id);
-      if (res.data) { setCurrent(id); setMessages(res.data.messages || []); setFollowUps([]); return; }
-    } catch { /* fallback */ }
+      if (res.data) {
+        const msgs = Array.isArray(res.data.messages) ? res.data.messages : [];
+        setCurrent(id);
+        setMessages(msgs);
+        setFollowUps([]);
+        return;
+      }
+    } catch { /* fallback to local */ }
     const conv = conversations.find((c) => c.id === id);
-    if (conv) { setCurrent(id); setMessages(conv.messages || []); setFollowUps([]); }
+    if (conv) {
+      const msgs = Array.isArray(conv.messages) ? conv.messages : [];
+      setCurrent(id);
+      setMessages(msgs);
+      setFollowUps([]);
+    } else {
+      message.warning('无法加载该对话');
+    }
   };
 
   const handleSend = async (query?: string) => {
@@ -290,12 +282,8 @@ export default function ChatPage() {
                           <UploadOutlined /> {f.name}
                         </div>
                       ))}
-                      {msg.role === 'assistant' && msg.content ? (
-                        <ErrorBoundary fallback={<span style={{ color: '#6B8F8E', whiteSpace: 'pre-wrap' }}>{msg.content}</span>}>
-                          <MarkdownRender content={msg.content} />
-                        </ErrorBoundary>
-                      ) : msg.content ? (
-                        <span>{msg.content}</span>
+                      {msg.content ? (
+                        <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
                       ) : (msg.role === 'assistant' && streaming && i === messages.length - 1 ? (
                         <span style={{ color: '#7AA9A8' }}>▍</span>
                       ) : '')}

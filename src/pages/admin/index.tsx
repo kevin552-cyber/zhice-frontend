@@ -60,13 +60,13 @@ export default function AdminPage() {
                   {r.status === 'pending' ? (
                     <>
                       <Button type="link" icon={<CheckCircleOutlined />} style={{ color: '#52c41a' }}
-                        onClick={async (e) => { e.preventDefault(); try { await approveReview(r.id); message.success('已通过'); getReviews().then(setReviews); } catch { message.error('操作失败'); } }}>通过</Button>
+                        onClick={async (e) => { e.preventDefault(); try { await approveReview(r.id); message.success('已通过'); getReviews().then((r) => setReviews(r.data)); } catch { message.error('操作失败'); } }}>通过</Button>
                       <Button type="link" icon={<CloseCircleOutlined />} danger
                         onClick={() => setRejectModal({ id: r.id, open: true })}>拒绝</Button>
                     </>
                   ) : r.status === 'active' || r.status === 'approved' ? (
                     <Button type="link" danger
-                      onClick={async (e) => { e.preventDefault(); try { await setUserStatus(r.id, 'disabled'); message.success('已禁用'); getReviews().then(setReviews); } catch { message.error('操作失败'); } }}>禁用</Button>
+                      onClick={async (e) => { e.preventDefault(); try { await setUserStatus(r.id, 'disabled'); message.success('已禁用'); getReviews().then((r) => setReviews(r.data)); } catch { message.error('操作失败'); } }}>禁用</Button>
                   ) : null}
                 </Space>
               )}
@@ -90,9 +90,9 @@ export default function AdminPage() {
                 <Space>
                   <Button type="link" onClick={() => Modal.info({ title: '用户详情', width: 600, content: <pre>{JSON.stringify(r, null, 2)}</pre> })}>详情</Button>
                   {r.status === 'active' ? (
-                    <Button type="link" danger onClick={async (e) => { e.preventDefault(); try { await setUserStatus(r.id, 'disabled'); message.success('已禁用'); getUsers().then(setUsers); } catch { message.error('操作失败'); } }}>禁用</Button>
+                    <Button type="link" danger onClick={async (e) => { e.preventDefault(); try { await setUserStatus(r.id, 'disabled'); message.success('已禁用'); getUsers().then((r) => setUsers(r.data)); } catch { message.error('操作失败'); } }}>禁用</Button>
                   ) : (
-                    <Button type="link" style={{ color: '#52c41a' }} onClick={async (e) => { e.preventDefault(); try { await setUserStatus(r.id, 'active'); message.success('已启用'); getUsers().then(setUsers); } catch { message.error('操作失败'); } }}>启用</Button>
+                    <Button type="link" style={{ color: '#52c41a' }} onClick={async (e) => { e.preventDefault(); try { await setUserStatus(r.id, 'active'); message.success('已启用'); getUsers().then((r) => setUsers(r.data)); } catch { message.error('操作失败'); } }}>启用</Button>
                   )}
                 </Space>
               )}
@@ -145,7 +145,7 @@ export default function AdminPage() {
         message.success('已拒绝');
         setRejectModal({ id: 0, open: false });
         setRejectReason('');
-        getReviews().then(setReviews);
+        getReviews().then((r) => setReviews(r.data));
       }}>
         <Input.TextArea placeholder="请输入拒绝原因" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
       </Modal>
